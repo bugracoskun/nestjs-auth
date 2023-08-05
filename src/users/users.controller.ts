@@ -6,11 +6,11 @@ import { UserNotFoundException } from 'tools/exceptions/user.exception';
 
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(private usersService: UsersService) { }
 
   @Get(':id')
-  getProfile(@Param() params): UserModel {
-    const user = this.usersService.getUserById(Number(params.id));
+  async getProfile(@Param() params): Promise<UserModel> {
+    const user = await this.usersService.findOne(params.id);
     if (!user) {
       throw new UserNotFoundException();
     }

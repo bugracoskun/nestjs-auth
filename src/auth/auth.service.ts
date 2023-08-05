@@ -2,6 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserNotFoundException } from 'tools/exceptions/user.exception';
+import { UserLoginDto } from 'tools/dtos/user.dto';
+import { UserEntity } from 'src/users/entity/users.entity';
 
 @Injectable()
 export class AuthService {
@@ -10,17 +12,24 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async login(username: string, pass: string): Promise<any> {
-    const user = await this.usersService.findOne(username);
-    if (user?.password !== pass) {
-      throw new UnauthorizedException();
-    } else if (user === undefined) {
-      throw new UserNotFoundException();
+  async signIn(signInDto: UserLoginDto) {
+    const { username, password } = signInDto;
+
+    const user = await this.usersService.findByUsername(username);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid username or password');
     }
 
-    const payload = { sub: user.userId, username: user.username };
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-    };
+    const passwordIsValid = await user.validatePassword(password);
+
+    if (!passwordIsValid) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+
+    const payload = { sub: user.id, username: user.username };
+    const accessToken = await this.jwtService.signAsync(payload);
+
+    return { access_token: accessToken };
   }
 }

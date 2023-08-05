@@ -1,26 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { UserModel } from 'tools/models/user.model';
-
+import { UserLoginDto } from 'tools/dtos/user.dto';
+import * as bcrypt from 'bcrypt';
+import { UserEntity } from './entity/users.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 @Injectable()
 export class UsersService {
-  private readonly users = [
-    {
-      userId: 1,
-      username: 'bugra',
-      password: 'bugra123',
-    },
-    {
-      userId: 2,
-      username: 'maria',
-      password: 'guess',
-    },
-  ];
+  constructor(
+    @InjectRepository(UserEntity) private readonly userRepository: Repository<UserEntity>,
+  ) { }
 
-  async findOne(username: string): Promise<UserModel | undefined> {
-    return this.users.find((user) => user.username === username);
+  async findOne(id: number): Promise<UserEntity | undefined> {
+    return this.userRepository.findOne({ where: { id } });
   }
 
-  getUserById(userId: number): UserModel {
-    return this.users.find((user) => user.userId === userId);
+  async findByUsername(username: string): Promise<UserEntity> {
+    return this.userRepository.findOne({ where: { username } });
+  }
+
+  async create(registerUserDto: UserLoginDto): Promise<UserEntity> {
+    const { username, password } = registerUserDto;
+
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = new UserEntity();
+    user.username = username;
+    user.password = hashedPassword;
+
+    return this.userRepository.save(user);
   }
 }

@@ -9,17 +9,19 @@ import { jwtConstants } from './auth.constant';
 import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from './auth.public';
+import { ConfigServiceService } from 'src/config-service/config-service.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService, private reflector: Reflector) {}
+  constructor(private jwtService: JwtService, private reflector: Reflector, private configServiceService: ConfigServiceService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) {
+    const isDevelopment = this.configServiceService.isDevelopment();
+    if (isPublic || isDevelopment) {
       // 💡 See this condition
       return true;
     }
